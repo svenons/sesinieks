@@ -1,125 +1,125 @@
-import turtle
+import PySimpleGUI as sg
 import random
-total_width = 3 * 100 + 2 * 20
-total_height = 2 * 100 + 20
 
-class Six():
+class Game:
     def __init__(self):
-        # noteikumi
-        NUM_SQUARES = 6
-        NUM_FIGURES_EACH = 4
+        layout = [
+                [sg.Text('Player1: '), sg.Input(key='i1')],
+                [sg.Text('Player2: '), sg.Input(key='i2')],
+                [sg.Text('Player3: '), sg.Input(key='i3')],
+                [sg.Text('Player4: '), sg.Input(key='i4')],
+                [sg.Text('Player5: '), sg.Input(key='i5')],
+                [sg.Text('Player6: '), sg.Input(key='i6')],
+                [sg.Button('Submit', key='submit')]
+            ]
 
-        # Turtle settings
-        turtle.setup(800, 600)
-        turtle.bgcolor("white")
-        turtle.speed(0)
-        turtle.hideturtle()
-        turtle.tracer(0)
+        window = sg.Window('Enter names for players', layout, finalize=True)
+        while True:
+            event, values = window.read()
+            if event == sg.WIN_CLOSED:
+                exit()
+            elif event == 'submit':
+                window.close()
+                break
+        self.players = {}
+        for x in values:
+            if not values[x] == '':
+                self.players[values[x]] = 4
+                self.playercount = len(self.players)
+    def board(self, playernames):
+        players = []
+        for x in playernames:
+            players.append([x, playernames[x]])
+        self.colors = ['red', 'green', 'blue', 'orange', 'purple', 'pink']
+        self.dots = [False] * 6
+        layout = [
+            [sg.Push(), sg.Text('rolled number x', key='gametext', visible=False), sg.Push()],
+            [sg.Push(), sg.Text('Players:'), sg.Push()],
+            [sg.Push(), sg.Table(values=players, headings=['Name', 'Trophies'], auto_size_columns=True, key='players', enable_events=True), sg.Push()],
+            [sg.Push(), sg.Button('Start game', key='start'), sg.Push()],
+            [sg.Push(), sg.Button('Roll dice', key='dice', visible=False), sg.Push()],
+            [sg.Push(), sg.Button('Place trophy', key='place', visible=False), sg.Push()],
+            [sg.Push(), sg.Button('Take trophy', key='take', visible=False), sg.Push()],
+            [sg.Canvas(size=(150, 150), background_color='red', key='canvas1'), sg.Canvas(size=(150, 150), background_color='green', key='canvas2'), sg.Canvas(size=(150, 150), background_color='yellow', key='canvas3')],
+            [sg.Canvas(size=(150, 150), background_color='blue', key='canvas4'), sg.Canvas(size=(150, 150), background_color='purple', key='canvas5'), sg.Canvas(size=(150, 150), background_color='orange', key='canvas6')],
+        ]
 
-        def draw_square(x, y, size, color):
-            turtle.penup()
-            turtle.goto(x, y)
-            turtle.pendown()
-            turtle.color(color)
-            turtle.begin_fill()
-            for _ in range(4):
-                turtle.forward(size)
-                turtle.left(90)
-            turtle.end_fill()
+        window = sg.Window('Game Six', layout, finalize=True)
 
-        def draw_number(x, y, number):
-            turtle.penup()
-            turtle.goto(x, y)
-            turtle.pendown()
-            turtle.color("black")
-            turtle.write(number, align="center", font=("Arial", 24, "normal"))
+        self.cir1 = window['canvas1'].TKCanvas.create_oval(50, 50, 100, 100)
+        self.cir2 = window['canvas2'].TKCanvas.create_oval(50, 50, 100, 100)
+        self.cir3 = window['canvas3'].TKCanvas.create_oval(50, 50, 100, 100)
+        self.cir4 = window['canvas4'].TKCanvas.create_oval(50, 50, 100, 100)
+        self.cir5 = window['canvas5'].TKCanvas.create_oval(50, 50, 100, 100)
+        self.cir6 = window['canvas6'].TKCanvas.create_oval(50, 50, 100, 100)
+        self.cirlist = {1: self.cir1, 2:self.cir2, 3:self.cir3, 4:self.cir4, 5:self.cir5, 6:self.cir6}
 
-        def draw_colored_squares():
-            colors = ["blue", "green", "orange", "yellow", "red", "purple"]
-            square_size = 100
-            margin = 20
-            num_squares_per_row = 3
+        self.window = window
+        self.moves = 0
+        self.window['start'].Update(visible=True)
+        self.board = [0,0,0,0,0,0]
+        self.gameEnded = False
+    def play(self):
+        if self.window['start'].visible == True:
+            while True:
+                event, values = self.window.read()
+                if event == sg.WIN_CLOSED:
+                    break
+                elif event == 'start':
+                    self.window['start'].Update(visible=False)
+                    break
+        for x in self.players:
+            self.gameEnded = False
+            self.window['dice'].Update(visible=True)
+            self.window['gametext'].Update(f'Player {x} needs to roll the dice!', visible=True)
+            do = True
+            while do == True:
+                if not self.gameEnded:
+                    event, values = self.window.read()
+                    self.moves += 1
+                    if event == sg.WIN_CLOSED:
+                        break
+                    elif event == 'dice':
+                        self.window['dice'].Update(visible=False)
+                        number = random.randrange(0, 5) + 1
 
-            for i, color in enumerate(colors):
-                row = i // num_squares_per_row
-                col = i % num_squares_per_row
-                x = col * (square_size + margin) - total_width // 2
-                y = -row * (square_size + margin) + total_height // 2
+                        if self.board[number] == 0:
+                            self.window['place'].Update(visible=True)
+                            self.window['gametext'].Update(f'Player {x} rolled {number} and should place the trophy!')
+                        else:
+                            self.window['take'].Update(visible=True)
+                            self.window['gametext'].Update(f'Player {x} rolled {number} and should take the trophy!')
+                            self.board[number] = 0
+                    
+                    elif event == 'place':
+                        self.board[number] = 1
+                        self.players[x] = self.players[x] - 1
+                        self.window['place'].Update(visible=False)
+                        self.window[f'canvas{number}'].TKCanvas.itemconfig(self.cirlist[number], fill='black')
+                        if self.players[x] == 0:
+                            sg.Popup(x, 'won!')
+                            do = False
+                            self.gameEnded = True
+                            return
+                        players = []
+                        for x in self.players:
+                            players.append([x, self.players[x]])
+                        self.window['players'].Update(players)
+                        do = False
+                    
+                    elif event == 'take':
+                        self.window['take'].Update(visible=False)
+                        self.window[f'canvas{number}'].TKCanvas.itemconfig(self.cirlist[number], fill='white')
+                        do = False
+                else:
+                    self.window.close()
 
-                draw_square(x, y, square_size, color)
-                draw_number(x + square_size // 2, y + square_size // 2 - 20, i + 1)
-
-        turtle.speed(0)
-        turtle.hideturtle()
-        turtle.tracer(0)
-
-        draw_colored_squares()
-
-        num_players = int(turtle.numinput("Six", "Number of players (2-6):", default=2, minval=2, maxval=6))
-        player_names = []
-        for i in range(1, num_players+1):
-            player_names.append(turtle.textinput("Six", f"Player {i} name:"))
-
-        def draw_player_names(player_names, player_figures):
-            num_players = len(player_names)
-            font_size = 20
-            padding = 50
-            figure_radius = 10
-            figure_spacing = 5
-            figures_per_row = 2
-
-            for i, name in enumerate(player_names):
-                turtle.penup()
-
-                if num_players == 2:
-                    turtle.goto((-1)**i * (total_width // 2 + padding), 0)
-                elif num_players == 3:
-                    turtle.goto((-1)**i * (total_width // 2 + padding), (-1)**(i // 2) * (total_height // 2))
-                elif num_players == 4:
-                    turtle.goto((-1)**(i // 2) * (total_width // 2 + padding), (-1)**i * (total_height // 2))
-                elif num_players == 5:
-                    if i < 4:
-                        turtle.goto((-1)**(i // 2) * (total_width // 2 + padding), (-1)**i * (total_height // 2))
-                    else:
-                        turtle.goto(-total_width // 2 - padding, 0)
-                elif num_players == 6:
-                    turtle.goto((-1)**(i // 3) * (total_width // 2 + padding), (-1)**i * (total_height // 2))
-
-                turtle.pendown()
-                turtle.color(player_figures[f'{name}color'])
-                turtle.write(name[:10], align="center", font=("Arial", font_size, "normal"))
-
-                num_squares = player_figures[name]
-                for j in range(0, num_squares):
-                    turtle.penup()
-                    x_offset = ((j % figures_per_row) - 0.5 * (figures_per_row - 1)) * (figure_radius * 2 + figure_spacing)
-                    y_offset = -font_size - figure_radius - (j // figures_per_row) * (figure_radius * 2 + figure_spacing)
-                    turtle.goto(turtle.xcor() + x_offset, turtle.ycor() + y_offset)
-                    turtle.pendown()
-                    turtle.color(player_figures[f'{name}color'])
-                    turtle.begin_fill()
-                    turtle.circle(figure_radius)
-                    turtle.end_fill()
-
-
-        player_figures = {}
-        color_list = ["black", "gray", "brown", "cyan", "darkblue", "darkgreen"]
-        for name in player_names:
-            player_figures[name] = 4
-            color = random.choice(color_list)
-            player_figures[f'{name}color'] = color
-            color_list.remove(color)
-        draw_player_names(player_names, player_figures)
-
-        input()
-
-        '''
-        Vēlāk spēles gaitā vajazdētu šādi:
-
-        player_figures[player_names[SP. SKAITLIS]] = 2
-        draw_player_names(player_names, player_figures)
-        '''
-
-if __name__ == "__main__":
-    game = Six()
-
+while True:
+    game = Game()
+    if not len(game.players) < 2:
+        break
+    else:
+        sg.Popup('Each name must be unique and at least 2 players should participate!')
+game.board(game.players)
+while not game.gameEnded:
+    game.play()
